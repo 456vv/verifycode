@@ -1,4 +1,5 @@
 例子：
+
     package main
     import (
       "fmt"
@@ -6,8 +7,6 @@
       "image/color"
       "github.com/456vv/verifycode"
     )
-    
-    
     func main(){
       os.Chdir("test")
       var verifyCode = verifycode.NewVerifyCode()
