@@ -57,3 +57,4 @@ type VerifyCode struct {
 	func (VC *VerifyCode) GIF(text string, w io.Writer) error
 	func (VC *VerifyCode) JPEG(text string, w io.Writer) error
 
+
