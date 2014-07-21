@@ -48,8 +48,6 @@ type VerifyCode struct {
     func (VC *VerifyCode) RandRange(min, max int) int64
     func (VC *VerifyCode) randColor(c []color.Color) image.Image
     func (VC *VerifyCode) randOpenFont() ([]byte, error)
-    func (VC *VerifyCode) xoy(xy string, m, M int) (int, error)
-    func (VC *VerifyCode) xywh(x, y string, w, h, W, H int) (dx, dy int, err error)
     func (VC *VerifyCode) Glyph(s rune) (*Glyph, error)
     func (VC *VerifyCode) Draw(text string) (draw.Image, error)
     func (VC *VerifyCode) PNG(text string, w io.Writer) error
