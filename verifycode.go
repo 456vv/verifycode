@@ -11,6 +11,7 @@ import (
     "image/png"
     "image/jpeg"
     "image/gif"
+    "strings"
     "github.com/456vv/verifycode/freetype"
     "github.com/456vv/verifycode/freetype/truetype"
     "github.com/456vv/verifycode/freetype/raster"
@@ -324,4 +325,28 @@ func (VC *VerifyCode) JPEG(text string, w io.Writer) error {
         return err
     }
     return jpeg.Encode(w, imageImage, &jpeg.Options{Quality: 100})
+}
+//Rnd 随机读取字符
+func (VC *VerifyCode) Rnd(text string , num int) string {
+    var (
+        b       []rune
+        textL   = len([]rune(text))
+        l       int64
+        i       int = 1
+    )
+    stringsReader := strings.NewReader(text)
+    for {
+        l = VC.Rander(textL)
+        stringsReader.Seek(l, 0)
+        ch, _, err := stringsReader.ReadRune()
+        b = append(b, ch)
+        if err != nil {
+            continue
+        }
+        if i == num {
+            break
+        }
+        i++
+    }
+    return string(b)
 }
