@@ -127,6 +127,8 @@ type VerifyCode struct {
     Colors, Backgrounds []color.Color
     Hinting         bool
     KerningMin, KerningMax      int
+
+    fonts           map[string][]byte
 }
 //验证码对象
 func NewVerifyCode() *VerifyCode {
@@ -135,6 +137,8 @@ func NewVerifyCode() *VerifyCode {
         Size: 12,
         KerningMin: 0,
         KerningMax: 20,
+
+        fonts: make(map[string][]byte),
     }
 }
 //SetDPI 设置图片的DPI。默认为72DPI
@@ -220,12 +224,21 @@ func (VC *VerifyCode) randOpenFont() ([]byte, error) {
     var (
         fontLen = len(VC.Fonts)
         font    string
+        err     error
     )
     if fontLen <= 0 {
         return nil, fmt.Errorf("没有可用的字体，请设置？x.SetFont([]string{\"ooxx.ttf\", ...})\r\n")
     }
     font = VC.Fonts[VC.Rander(fontLen)]
-    return ioutil.ReadFile(font)
+    b, ok := VC.fonts[font]
+    if !ok {
+        b, err = ioutil.ReadFile(font)
+        if err != nil {
+            return nil, err
+        }
+    }
+    VC.fonts[font] = b
+    return b, err
 }
 
 //Font 随机打开一个字体文件，如果没有字体文件，报错?
