@@ -33,6 +33,8 @@ type VerifyCode struct {
     Colors, Backgrounds []color.Color
     Hinting         bool
     KerningMin, KerningMax      int
+
+    fonts           map[string][]byte
 }
     func NewVerifyCode() *VerifyCode
     func (VC *VerifyCode) SetDPI(dpi float64)
@@ -54,4 +56,3 @@ type VerifyCode struct {
     func (VC *VerifyCode) GIF(text string, w io.Writer) error
     func (VC *VerifyCode) JPEG(text string, w io.Writer) error
     func (VC *VerifyCode) Rnd(text string , n int) string
-
