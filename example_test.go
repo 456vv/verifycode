@@ -1,20 +1,34 @@
 package verifycode_test
 import (
-    "os"
-    "image/color"
+    "fmt"
 )
-func ExampleNewVerifyCode(){
-    var verifyCode = NewVerifyCode()
-    verifyCode.SetDPI(72)
-    verifyCode.SetColor([]color.Color{})
-    verifyCode.SetBackground([]color.Color{color.RGBA{255, 255, 255, 255}})
-    verifyCode.SetWidthWithHeight(500, 300)
-    verifyCode.SetFont([]string{"C:\\Windows\\Fonts\\simsun.ttf"})
-    verifyCode.SetFontSize(200)
-    verifyCode.SetHinting(false)
-    verifyCode.SetKerning(-100, 100)
-    osFile, _ := os.Create("Verification code.png")
-    defer osFile.Close()
-    r := verifyCode.Rnd("1234567890qwertyuiopasdfghjklzxcvbnm", 4)
-    verifyCode.PNG(r, osFile)
+
+func ExampleRander(){
+    n := Rander(10)
+    fmt.Println(n)
+}
+
+func ExampleRandRange(){
+    var min, max int = 10, 30
+    n := RandRange(min, max)
+    fmt.Println(n)
+}
+
+func ExampleRandomText(){
+    text := "1234567890qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM"
+    n := 4
+    code := RandomText(text , n)
+    fmt.Println(code)
+}
+
+func ExampleNewFont() {
+    s := []string{"0.ttf"}
+    f, err := NewFont(s)
+    fmt.Println(f, err)
+}
+
+func ExampleNewColor() {
+    s := []string{"#FFFFFFFF", "#E34D86FF"}
+    c, err := NewColor(s)
+    fmt.Println(c, err)
 }
