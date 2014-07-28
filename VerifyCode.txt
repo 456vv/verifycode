@@ -1,58 +1,68 @@
-type Bounds struct {
-    XMin, YMin, XMax, YMax int32
-}
-type HMetric struct {
-    AdvanceWidth, LeftSideBearing int32
-}
-type VMetric struct {
-    AdvanceHeight, TopSideBearing int32
-}
-type Glyph struct{
-    G           *truetype.GlyphBuf
-    F           *truetype.Font
-    I           truetype.Index
-    verifyCode  *VerifyCode
-    text        rune
-}
-    func (g *Glyph) AdvanceWidth() int32
-    func (g *Glyph) Width() int32
-    func (g *Glyph) Width() int32
-    func (g *Glyph) Height() int32
-    func (g *Glyph) LeftMargin() int32
-    func (g *Glyph) TopMargin() int32
-    func (g *Glyph) HMetric() HMetric
-    func (g *Glyph) VMetric() VMetric
-    func (g *Glyph) Bounds() Bounds
-    func (g *Glyph) hinting() freetype.Hinting
-    func (g *Glyph) FontGlyph(size float64, c image.Image) (draw.Image, error)
-type VerifyCode struct {
-    Width, Height   int
-    DPI             float64
-    Fonts           []string
-    Size            float64
-    Colors, Backgrounds []color.Color
-    Hinting         bool
-    KerningMin, KerningMax      int
+func Rander(n int) int64                                                            // 随机数
+func RandRange(min, max int) int64                                                  // 随机数（范围）
+func RandomText(text string , n int) string                                         // 随机字符
 
-    fonts           map[string][]byte
+type Bounds struct {                                                        // 边界
+    XMin, YMin, XMax, YMax int32                                                    // X0, Y0, X1, Y1
 }
-    func NewVerifyCode() *VerifyCode
-    func (VC *VerifyCode) SetDPI(dpi float64)
-    func (VC *VerifyCode) SetColor(c []color.Color)
-    func (VC *VerifyCode) SetBackground(b []color.Color)
-    func (VC *VerifyCode) SetWidthWithHeight(width, height  int)
-    func (VC *VerifyCode) SetFont(font []string)
-    func (VC *VerifyCode) SetFontSize(size float64)
-    func (VC *VerifyCode) SetHinting(h bool)
-    func (VC *VerifyCode) SetKerning(min, max int)
-    func (VC *VerifyCode) hinting() truetype.Hinting
-    func (VC *VerifyCode) Rander(n int) int64
-    func (VC *VerifyCode) RandRange(min, max int) int64
-    func (VC *VerifyCode) randColor(c []color.Color) image.Image
-    func (VC *VerifyCode) randOpenFont() ([]byte, error)
-    func (VC *VerifyCode) Glyph(s rune) (*Glyph, error)
-    func (VC *VerifyCode) Draw(text string) (draw.Image, error)
-    func (VC *VerifyCode) PNG(text string, w io.Writer) error
-    func (VC *VerifyCode) GIF(text string, w io.Writer) error
-    func (VC *VerifyCode) JPEG(text string, w io.Writer) error
-    func (VC *VerifyCode) Rnd(text string , n int) string
+type HMetric struct {                                                       // 垂直测量
+    AdvanceWidth, LeftSideBearing int32                                            // 全宽，左跨
+}
+type VMetric struct {                                                               // 水平测量
+    AdvanceHeight, TopSideBearing int32                                             // 全高，上跨
+}
+type Glyph struct{                                                          // 字形
+    G           *truetype.GlyphBuf                                                  // 字形对象
+    F           *truetype.Font                                                      // 字体对象
+    I           truetype.Index                                                      // 字体索引
+    verifyCode  *VerifyCode                                                         // 验证码对象
+    text        rune                                                                // 字形rune
+}
+    func (g *Glyph) AdvanceWidth() int32                                            // 全宽
+    func (g *Glyph) Width() int32                                                   // 宽度
+    func (g *Glyph) Height() int32                                                  // 高度
+    func (g *Glyph) LeftMargin() int32                                              // 左跨
+    func (g *Glyph) TopMargin() int32                                               // 上跨（只有小部字体文件，才是正确的。）
+    func (g *Glyph) HMetric() HMetric                                               // 水平测量
+    func (g *Glyph) VMetric() VMetric                                               // 垂直测量
+    func (g *Glyph) Bounds() Bounds                                                 // 边形
+    func (g *Glyph) hinting() freetype.Hinting                                      // 微调
+    func (g *Glyph) FontGlyph(size float64, c image.Image) (draw.Image, error)      // 字体字形
+
+type Font struct {                                                          // 字体
+    font    []*truetype.Font                                                        // 字体集
+}
+    func NewFont(f []string) (*Font, error)                                         // 字体对象
+    func (f *Font) Random() *truetype.Font                                          // 随机字体
+
+type Color struct {                                                         // 颜色
+    color   []color.Color                                                           // 颜色集
+}
+    func NewColor(c []string) (*Color, error)                                       // 颜色对象
+    func (c *Color) Random() color.Color                                            // 随机颜色
+    func (c *Color) RandomImage() image.Image                                       // 随机图像
+
+type VerifyCode struct {                                                    // 验证码
+    Width, Height   int                                                             // 宽，高
+    DPI             float64                                                         // DPI
+    Fonts           *Font                                                           // 字体对象
+    Size            float64                                                         // 字体大小
+    Colors, Backgrounds        *Color                                               // 颜色，背景
+    Hinting         bool                                                            // 微调
+    KerningMin, KerningMax    int                                                   // 间距
+}
+    func NewVerifyCode() *VerifyCode                                                // 验证码对象
+    func (VC *VerifyCode) hinting() truetype.Hinting                                // 微调
+    func (VC *VerifyCode) SetDPI(dpi float64)                                       // 设置DPI
+    func (VC *VerifyCode) SetColor(c *Color)                                        // 设置颜色
+    func (VC *VerifyCode) SetBackground(c *Color)                                   // 设置背景
+    func (VC *VerifyCode) SetWidthWithHeight(width, height  int)                    // 设置宽，度
+    func (VC *VerifyCode) SetFont(font *Font)                                       // 设置字体
+    func (VC *VerifyCode) SetFontSize(size float64)                                 // 设置字体大小
+    func (VC *VerifyCode) SetHinting(h bool)                                        // 设置微调
+    func (VC *VerifyCode) SetKerning(min, max int)                                  // 设置间距
+    func (VC *VerifyCode) Glyph(s rune) (*Glyph, error)                             // 字形
+    func (VC *VerifyCode) Draw(text string) (draw.Image, error)                     // 水印
+    func (VC *VerifyCode) PNG(text string, w io.Writer) error                       // PNG
+    func (VC *VerifyCode) GIF(text string, w io.Writer) error                       // GIF
+    func (VC *VerifyCode) JPEG(text string, w io.Writer) error                      // JPEG
