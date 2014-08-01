@@ -18,6 +18,9 @@ import (
 )
 //Rander 随机数，返回的随机数是 0-n 的其中一个值。
 func Rander(n int) int64 {
+    if n <= 0 {
+        return 0
+    }
     max := big.NewInt(int64(n))
     rnd, err := rand.Int(rand.Reader, max)
     if err != nil {
