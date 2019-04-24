@@ -1,195 +1,147 @@
 package verifycode
-import (
-    "testing"
-    "os"
-    "image/png"
+	
+import(
+	"testing"
+	"os"
+	"image/png"
 )
 
-func TestRander(t *testing.T){
-    n := Rander(10)
-    t.Fatalf("随机数: %v", n)
+
+func Test_Rand(t *testing.T){
+	for i:=0;i<1000;i++{
+		if n := Rand(10); n>10 {
+    		t.Fatalf("随机数大于: %v", n)
+		}
+	}
 }
 
-func TestRandRange(t *testing.T){
+func Test_RandRange(t *testing.T){
     var min, max int = 10, 30
-    n := RandRange(min, max)
-    t.Fatalf("随机范围: %v", n)
+    for i:=0;i<1000;i++ {
+    	if n := int(RandRange(min, max)); n < min || n > max {
+    		t.Fatalf("随机范围超出: %v", n)
+    	}
+    }
+    
 }
 
-func TestRandomText(t *testing.T) {
+func Test_RandomText(t *testing.T) {
     text := "1234567890qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM"
     n := 4
-    code := RandomText(text , n)
-    t.Fatalf("4位验证码: %v", code)
-}
-
-func TestNewFont(t *testing.T) {
-    s := []string{"0.ttf"}
-    f, err := NewFont(s)
-    if err != nil {
-        t.Fatalf("打开字体错误: %v", err)
-    }
-    if len(f.font) != len(s) {
-        t.Fatalf("有些字体无法解析")
+    for i:=0;i<1000;i++ {
+		if code := RandomText(text , n); len(code) != n {
+	    	t.Fatalf("非4位验证码: %v", code)
+		}
     }
 }
 
-func TestNewFontRandom(t *testing.T) {
-    s := []string{"0.ttf"}
-    f, err := NewFont(s)
-    if err != nil {
-        t.Fatalf("打开字体错误: %v", err)
-    }
-    font := f.Random()
-    _ = font
+
+func Test_Color_AddHEX(t *testing.T){
+	tests := []struct{
+		c	string
+		err bool
+	}{
+		{c:"#11223344", err: false},
+		{c:"11223344", err: false},
+		{c:"#112233445", err: true},
+		{c:"1122334", err: true},
+	}
+	c := Color{}
+	for _, test := range tests {
+		if err := c.AddHEX(test.c); (err != nil) != test.err {
+			t.Fatalf("格式不正确：%v", err)
+		}
+	}
 }
 
-func TestNewColor(t *testing.T) {
-    s := []string{"#FFFFFFFF", "#E34D8674"}
-    c, err := NewColor(s)
-    if err != nil {
-        t.Fatalf("解析颜色错误: %v", err)
-    }
-    if len(c.color) != len(s) {
-        t.Fatalf("有些颜色无法解析")
-    }
+
+func Test_Color_AddRGBA(t *testing.T){
+	tests := []struct{
+		r,g,b,a	uint8
+		err bool
+	}{
+		{r:0, g:0, b:0, a:0, err: false},
+		{r:128, g:128, b:128, a:128, err: false},
+		{r:255, g:255, b:255, a:255, err: false},
+	}
+	c := Color{}
+	for _, test := range tests {
+		if err := c.AddRGBA(test.r, test.g, test.b, test.a); (err != nil) != test.err {
+			t.Fatalf("格式不正确：%v", err)
+		}
+	}
 }
 
-func TestNewColorRandom(t *testing.T) {
-    s := []string{"#FFFFFFFF", "#E34D8674"}
-    c, err := NewColor(s)
-    if err != nil {
-        t.Fatalf("解析颜色错误: %v", err)
-    }
-    color := c.Random()
-    _ = color
-}
 
-func TestNewVerifyCode(t *testing.T){
-    //验证码颜色
-    c := []string{"#ff8080FF", "#00ff0000", "#8080c0FD"}
-    colors, err := NewColor(c)
-    if err != nil {
-        t.Fatalf("NewColor: %v", err)
-    }
+func Test_Glyph_FontGlyph(t *testing.T){
+	c := Color{}
+	f := Font{}
+	err := f.AddFile("testdata/0.ttf")
+	if err != nil {
+		t.Fatalf("字体错误：%v",err)
+	}
+	
+	glyph := Glyph{
+		DPI:72,
+		Size:256,
+	}
+	
+	drawImage, err := glyph.FontGlyph(f.font[0], '颧', c.Random())
+	
+	if err != nil {
+		t.Fatalf("生成字形出错: %v", err)
+	}
+	filePNG, err := os.OpenFile("testdata/test.png", os.O_RDWR|os.O_CREATE, 0755)
+	if err != nil {
+		t.Fatalf("创建图片文件失败: %v", err)
+	}
+	defer filePNG.Close()
 
-    //验证码背景
-    b := []string{"#FFFFFFFF"}
-    backgrounds, err := NewColor(b)
-    if err != nil {
-        t.Fatalf("NewColor: %v", err)
-    }
-
-    //字体
-    f := []string{"0.ttf"}
-    fonts, err := NewFont(f)
-    if err != nil {
-        t.Fatalf("NewFont: %v", err)
-    }
-    verifycode := NewVerifyCode()
-    verifycode.SetDPI(72)           //也可以不用设置这个
-    verifycode.SetColor(colors)
-    verifycode.SetBackground(backgrounds)
-    verifycode.SetFont(fonts)
-    verifycode.SetWidthWithHeight(500, 200) // 宽500px，高200px
-    verifycode.SetFontSize(200)
-    verifycode.SetHinting(false)    //也可以不用设置这个
-    verifycode.SetKerning(-100, 100)    //随机字距，最小-100，最大100
-    glyph, err := verifycode.Glyph('汉')
-    if err != nil {
-        t.Fatalf("字形出错 %v", err)
-    }
-    Image, err := glyph.FontGlyph(verifycode.Size, colors.RandomImage())
-    if err != nil {
-        t.Fatalf("水印生成出错 %v", err)
-    }
-    file, err := os.Create("tmpTest.png")
-    if err != nil {
-        t.Fatalf("创建文件出氏 %v", err)
-    }
-    png.Encode(file, Image)
-}
-
-func TestVercifyCodeDraw(t *testing.T){
-    //验证码颜色
-    c := []string{"#ff8080FF", "#00ff0000", "#8080c0FD"}
-    colors, err := NewColor(c)
-    if err != nil {
-        t.Fatalf("NewColor: %v", err)
-    }
-
-    //验证码背景
-    b := []string{"#804040FF"}
-    backgrounds, err := NewColor(b)
-    if err != nil {
-        t.Fatalf("NewColor: %v", err)
-    }
-
-    //字体
-    f := []string{"0.ttf"}
-    fonts, err := NewFont(f)
-    if err != nil {
-        t.Fatalf("NewFont: %v", err)
-    }
-    verifycode := NewVerifyCode()
-    verifycode.SetDPI(72)           //也可以不用设置这个
-    verifycode.SetColor(colors)
-    verifycode.SetBackground(backgrounds)
-    verifycode.SetFont(fonts)
-    verifycode.SetWidthWithHeight(500, 200) // 宽500px，高200px
-    verifycode.SetFontSize(200)
-    verifycode.SetHinting(false)    //也可以不用设置这个
-    verifycode.SetKerning(-100, 100)    //随机字距，最小-100，最大100
-    drawImage, err := verifycode.Draw("abcd")
-    if err != nil {
-        t.Fatalf("生成验证码出错 %v", err)
-    }
-
-    file, err := os.Create("tmpTest.png")
-    if err != nil {
-        t.Fatalf("创建文件出错 %v", err)
-    }
-    png.Encode(file, drawImage)
+	err = png.Encode(filePNG, drawImage)
+	if err != nil {
+		t.Fatalf("生成验证码失败: %v", err)
+	}
 
 }
 
-func TestVercifyCodePNG(t *testing.T){
-    //验证码颜色
-    c := []string{"#ff8080FF", "#00ff0000", "#8080c0FD"}
-    colors, err := NewColor(c)
-    if err != nil {
-        t.Fatalf("NewColor: %v", err)
-    }
 
-    //验证码背景
-    b := []string{"#804040FF"}
-    backgrounds, err := NewColor(b)
-    if err != nil {
-        t.Fatalf("NewColor: %v", err)
-    }
-
-    //字体
-    f := []string{"0.ttf"}
-    fonts, err := NewFont(f)
-    if err != nil {
-        t.Fatalf("NewFont: %v", err)
-    }
-    verifycode := NewVerifyCode()
-    verifycode.SetDPI(72)           //也可以不用设置这个
-    verifycode.SetColor(colors)
-    verifycode.SetBackground(backgrounds)
-    verifycode.SetFont(fonts)
-    verifycode.SetWidthWithHeight(500, 200) // 宽500px，高200px
-    verifycode.SetFontSize(200)
-    verifycode.SetHinting(false)    //也可以不用设置这个
-    verifycode.SetKerning(-100, 100)    //随机字距，最小-100，最大100
-
-    file, err := os.Create("tmpTest.png")
-    if err != nil {
-        t.Fatalf("创建文件出错 %v", err)
-    }
-    err = verifycode.PNG("ABCD", file)
-    if err != nil {
-        t.Fatalf("生成验证码出错 %v", err)
-    }
+func Test_NewVerifyCode_PNG(t *testing.T){
+	
+	filePNG, err := os.OpenFile("testdata/test.png", os.O_RDWR|os.O_CREATE, 0755)
+	if err != nil {
+		t.Fatalf("创建图片文件失败: %v", err)
+	}
+	defer filePNG.Close()
+	
+	f := Font{}
+	err = f.AddFile("testdata/0.ttf")
+	if err != nil {
+		t.Fatalf("字体错误：%v",err)
+	}
+	
+	verifycode := NewVerifyCode()
+	verifycode.Font = f
+	verifycode.SpaceMin=-100
+	verifycode.SpaceMax=0
+	err = verifycode.PNG("验证汉字", filePNG)
+	if err != nil {
+		t.Fatalf("生成验证码失败: %v", err)
+	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,23 +1,30 @@
 package verifycode
-import (
-    "fmt"
-    "io"
-    "io/ioutil"
-    "math/big"
-    "crypto/rand"
-    "strconv"
-    "image"
-    "image/color"
-    "image/draw"
-    "image/png"
-    "image/jpeg"
-    "image/gif"
-    "strings"
-    "github.com/456vv/verifycode/freetype"
-    "github.com/456vv/verifycode/freetype/truetype"
+
+import(
+	"fmt"
+	"io"
+	"io/ioutil"
+	"strconv"
+	"math/big"
+	"crypto/rand"
+	"strings"
+	"image"
+	"image/color"
+	"image/png"
+	"image/jpeg"
+	"image/gif"
+	"image/draw"
+	"github.com/golang/freetype"
+	"github.com/golang/freetype/truetype"
+	"golang.org/x/image/font"
+	"golang.org/x/image/math/fixed"
 )
-//Rander 随机数，返回的随机数是 0-n 的其中一个值。
-func Rander(n int) int64 {
+
+
+//Rand 随机数，返回的随机数是 0-n 的其中一个值。
+//	n int 		最大限制的数值
+//	int64		返回0-n的随机数
+func Rand(n int) int64 {
     if n <= 0 {
         return 0
     }
@@ -30,396 +37,312 @@ func Rander(n int) int64 {
 }
 
 //RandRange 随机数（范围）
+//	min, max int	最小值，最大值
+//	int64			最小至最大范围的值
 func RandRange(min, max int) int64 {
-    var r = Rander(max+1 - min)
-    return r + int64(min)
+    return int64(min) + Rand(max+1 - min)
 }
 
-
 //RandomText 随机字符
+//	text string , n int	字符串，指定长度
+//	string				返回n个长度的随机字条串
 func RandomText(text string , n int) string {
     var (
         b       []rune
-        textL   = len([]rune(text))
-        l       int64
-        i       int = 1
+        length  = len([]rune(text))
+        r       int64
     )
     stringsReader := strings.NewReader(text)
-    for;; i++ {
-        l = Rander(textL)
-        stringsReader.Seek(l, 0)
+    for i:=0; i<n; i++ {
+        r = Rand(length)
+        stringsReader.Seek(r, 0)
         ch, _, err := stringsReader.ReadRune()
         if err != nil {
+        	i--
             continue
         }
         b = append(b, ch)
-        if i == n {
-            break
-        }
     }
     return string(b)
 }
 
-//Bounds 边界
-type Bounds struct {
-    XMin, YMin, XMax, YMax int32                            // X0, Y0, X1, Y1
-}
 
-//HMetric 垂直测量
-type HMetric struct {
-    AdvanceWidth, LeftSideBearing int32                     // 全宽，左跨
-}
-
-//VMetric 水平测量
-type VMetric struct {
-    AdvanceHeight, TopSideBearing int32                     // 全高，上跨
-}
-
-//Glyph 字形
-type Glyph struct{
-    G           *truetype.GlyphBuf                          // 字形对象
-    F           *truetype.Font                              // 字体对象
-    I           truetype.Index                              // 字体索引
-    verifyCode  *VerifyCode                                 // 验证码对象
-    text        rune                                        // 字形rune
-}
-
-//AdvanceWidth 字形的边界方形宽
-func (g *Glyph) AdvanceWidth() int32 {
-    return g.G.AdvanceWidth
-}
-
-//Width 字形宽
-func (g *Glyph) Width() int32 {
-    return g.G.B.XMax - g.G.B.XMin
-}
-
-//Height 字形高
-func (g *Glyph) Height() int32 {
-    return g.G.B.YMax - g.G.B.YMin
-}
-
-//LeftMargin 字形左跨
-func (g *Glyph) LeftMargin() int32 {
-    return g.G.B.XMin
-}
-
-//TopMargin 字形上跨
-func (g *Glyph) TopMargin() int32 {
-    return g.G.B.YMin
-}
-
-//HMetric 水平测量
-func (g *Glyph) HMetric() HMetric {
-    return (HMetric)(g.F.HMetric(g.F.FUnitsPerEm(), g.I))
-}
-
-//VMetric 垂直测量
-func (g *Glyph) VMetric() VMetric {
-    return (VMetric)(g.F.VMetric(g.F.FUnitsPerEm(), g.I))
-}
-
-//Bounds 字形边界
-func (g *Glyph) Bounds() Bounds {
-    return (Bounds)(g.G.B)
-}
-
-//hinting freetype 的微调字形
-func (g *Glyph) hinting() freetype.Hinting {
-    if g.verifyCode.Hinting {
-        return freetype.FullHinting
-    }else{
-        return freetype.NoHinting
-    }
-}
-
-//FontGlyph 字体字形
-func (g *Glyph) FontGlyph(size float64, c image.Image) (draw.Image, error) {
-    var (
-        dx, dy      = int(size), int(size)
-        x, y        int
-        dpi         = g.verifyCode.DPI
-        F           = g.F
-    )
-    // 新建一个 指定大小的 RGBA位图
-    drawImage := image.NewRGBA(image.Rect(0, 0, dx, dy))
-
-    // 画背景
-    for y := 0; y < dy; y++ {
-        for x := 0; x < dx; x++ {
-            // 设置某个点的颜色，依次是 RGBA
-            drawImage.Set(x, y, color.RGBA{0, 0, 0, 0})
-        }
-    }
-
-    //字体转图片
-    freetypeContext := freetype.NewContext();
-    freetypeContext.SetDPI(dpi)
-    freetypeContext.SetClip(drawImage.Bounds())
-    freetypeContext.SetFont(F)
-    freetypeContext.SetFontSize(size)
-    freetypeContext.SetHinting(g.hinting())
-    freetypeContext.SetDst(drawImage)
-    freetypeContext.SetSrc(c)
-
-    x = 0
-    y = int(freetypeContext.PointToFix32(float64(size*0.88))>>8)
-    pt := freetype.Pt(x, y)
-   _, err := freetypeContext.DrawString(string(g.text), pt)
-    return drawImage, err
-}
-
-
-
-//Font 字体
-type Font struct {
-    font []*truetype.Font                       // 字体集
-}
-
-//OpenFont 字体对象
-func NewFont(f []string) (*Font, error) {
-    var F []*truetype.Font
-    for _, p := range f {
-        b, err := ioutil.ReadFile(p)
-        if err != nil {
-            return nil, err
-        }
-        font, err := freetype.ParseFont(b)
-        if err != nil {
-            return nil, err
-        }
-        F = append(F, font)
-    }
-    return &Font{
-        font: F,
-    }, nil
-}
-
-//Random 随机字体
-func (f *Font) Random() *truetype.Font {
-    var (
-        fLen = len(f.font)
-        n   = Rander(fLen)
-    )
-    return f.font[n]
-}
 
 //Color 颜色集
 type Color struct {
     color []color.Color
 }
 
-//NewColor 颜色对象
-func NewColor(c []string) (*Color, error) {
-    var C   []color.Color
-    var e   = "NewColor: 颜色%s，被解析错误 >> %s"
-    for _, s := range c {
-        if len(s) != 9 {
-            return nil, fmt.Errorf("NewColor: 十六进制颜色符长度不够 %s", s)
-        }
-        R, err := strconv.ParseInt(s[1:3], 16, 64)
-        if err != nil {
-            return nil, fmt.Errorf(e, s, err)
-        }
-        G, err := strconv.ParseInt(s[3:5], 16, 64)
-        if err != nil {
-            return nil, fmt.Errorf(e, s, err)
-        }
-        B, err := strconv.ParseInt(s[5:7], 16, 64)
-        if err != nil {
-            return nil, fmt.Errorf(e, s, err)
-        }
-        A, err := strconv.ParseInt(s[7:9], 16, 64)
-        if err != nil {
-            return nil, fmt.Errorf(e, s, err)
-        }
-        if (R <= 255 && R >= 0) && (G <= 255 && G >=0) && (B <= 255 && G >= 0) && (A <= 255 && A >= 0) {
-            C = append(C, color.RGBA{uint8(R), uint8(G), uint8(B), uint8(A)})
-        }else{
-            return nil, fmt.Errorf("NewColor: 颜色不正确 %s", s)
-        }
+//AddHEX 增加十六进制颜色
+//	text string		颜色字符串，格式如：#11223344 或 11223344
+//	error			错误
+func (T *Color) AddHEX(text string) error {
+	var l = len(text)
+	if text == "" || l < 8 || l > 9 {
+		return fmt.Errorf("verifycode: 十六进制颜色符长度不符合 %s, 格式如#11223344 或 11223344", text)
+	}
+	if l > 8 {
+		text = text[1:]
+	}
+    var e   = "verifycode: 颜色 %s，解析错误是 >> %s"
+    R, err := strconv.ParseInt(text[0:2], 16, 64)
+    if err != nil {
+        return fmt.Errorf(e, text, err)
     }
-    return &Color{
-        color: C,
-    }, nil
+    G, err := strconv.ParseInt(text[2:4], 16, 64)
+    if err != nil {
+        return fmt.Errorf(e, text, err)
+    }
+    B, err := strconv.ParseInt(text[4:6], 16, 64)
+    if err != nil {
+        return fmt.Errorf(e, text, err)
+    }
+    A, err := strconv.ParseInt(text[6:8], 16, 64)
+    if err != nil {
+        return fmt.Errorf(e, text, err)
+    }
+    if (R <= 255 && R >= 0) && (G <= 255 && G >=0) && (B <= 255 && B >= 0) && (A <= 255 && A >= 0) {
+        T.color = append(T.color, color.RGBA{uint8(R), uint8(G), uint8(B), uint8(A)})
+        return nil
+    }
+	return fmt.Errorf("verifycode: 颜色不正确 %s", text)
+}
+
+//AddRGBA 增加RGBA颜色
+//	r, g, b, a uint8	RGBA颜色值0-255
+//	error				错误
+func (T *Color) AddRGBA(r, g, b, a uint8) error {
+    if (r <= 255 && r >= 0) && (g <= 255 && g >=0) && (b <= 255 && b >= 0) && (a <= 255 && a >= 0) {
+        T.color = append(T.color, color.RGBA{r, g, b, a})
+        return nil
+    }
+	return fmt.Errorf("verifycode: 参数颜色值仅限于0-255范围")
 }
 
 //Random 随机颜色
-func (c *Color) Random() color.Color {
+//	color.Color	颜色，如果没有自定义的颜色，否则内部自动生成一个随机颜色
+func (T *Color) Random() color.Color {
     var (
-        cLen    = len(c.color)
-        n       = Rander(cLen)
-        colorC  color.Color
+        cLen    = len(T.color)
+        n       = Rand(cLen)
     )
     if cLen == 0 {
         //随机生成一个颜色
-        colorC = color.RGBA{
+       return color.RGBA{
             R: uint8(RandRange(128, 255)),
             G: uint8(RandRange(128, 255)),
             B: uint8(RandRange(128, 255)),
             A: uint8(RandRange(128, 255)),
         }
-    }else{
-        //随机读取列表中的一个颜色
-        colorC  = c.color[n]
     }
-    return colorC
+    //随机读取列表中的一个颜色
+  	return T.color[n]
 }
 
-//RandomImage 随机图像
-func (c *Color) RandomImage() image.Image {
-    return image.NewUniform(c.Random())
+
+//Font 字体
+type Font struct {
+    font []*truetype.Font	// 字体集
+}
+
+//AddFile 增加字体文件
+//	src string	字体文件路径
+//	error		错误
+func (T *Font) AddFile(src string) error {
+	b, err := ioutil.ReadFile(src)
+	if err != nil {
+		return err
+    }
+    font, err := truetype.Parse(b)
+	if err != nil {
+		return err
+    }
+	T.font = append(T.font, font)
+	return nil
+}
+
+//Random 随机字体
+//	*truetype.Font	字体对象
+//	error			错误
+func (T *Font) Random() (*truetype.Font, error) {
+    var fLen = len(T.font)
+    if fLen == 0 {
+    	return nil, fmt.Errorf("verifycode: 没有可用的字体")
+    }
+    n := Rand(fLen)
+    f := T.font[n]
+    return f, nil
+}
+
+//Glyph 字形
+type Glyph struct{
+	Hinting		font.Hinting								// 微调字形
+	Size		float64										// 字形大小
+	DPI			float64										// PDI，默认72
+}
+
+//FontGlyph 字体字形
+//	Font *truetype.Font		字体对象
+//	text rune				单个文字
+//	c image.Image			颜色
+//	draw.Image				字形
+//	error					错误
+func (T *Glyph) FontGlyph(Font *truetype.Font, text rune, c color.Color) (draw.Image, error) {
+	var dx, dy      = int(T.Size), int(T.Size)
+    // 新建一个 指定大小的 RGBA位图
+    drawImage := image.NewRGBA(image.Rect(0, 0, dx, dy))
+
+	//字体转图片
+    freetypeContext := freetype.NewContext();
+    freetypeContext.SetClip(drawImage.Bounds())
+    if T.DPI > 0 && T.DPI < 72 {
+		freetypeContext.SetDPI(T.DPI)
+    }
+    freetypeContext.SetFont(Font)
+	freetypeContext.SetFontSize(T.Size)
+    freetypeContext.SetHinting(T.Hinting)
+    freetypeContext.SetSrc(image.NewUniform(c))
+    freetypeContext.SetDst(drawImage)
+	
+	perEm := Font.FUnitsPerEm()
+	glyphBuf := truetype.GlyphBuf{}
+	err := glyphBuf.Load(Font, fixed.Int26_6(perEm), Font.Index(text), T.Hinting)
+	if err != nil {
+		return nil, err
+	}
+	
+	//x轴是从0开始
+	fontWidth := int(glyphBuf.AdvanceWidth)
+    x := (int(T.Size)-fontWidth)/2
+    
+    //y轴是从字高开始
+    fontHeight := int(glyphBuf.Bounds.Max.Y+glyphBuf.Bounds.Min.Y)
+    y := (int(T.Size)-fontHeight)/2+fontHeight
+    
+    pt := freetype.Pt(x, y)
+	pt, err = freetypeContext.DrawString(string(text), pt)
+    return drawImage, err
 }
 
 //VerifyCode 验证码
 type VerifyCode struct {
-    Width, Height   int                                                               // 宽，高
-    DPI             float64                                                           // DPI
-    Fonts           *Font                                                            // 字体对象
-    Size            float64                                                           // 字体大小
-    Colors, Backgrounds    *Color                                                  // 颜色，背景
-    Hinting         bool                                                                  // 微调
-    KerningMin, KerningMax  int                                                   // 间距
+    Width, Height   int								// 宽，高
+    DPI             float64							// DPI
+	Font           	Font							// 字体对象
+    Size            float64							// 字体大小
+	TextColor, BackgroundColor    Color				// 颜色，背景
+    Hinting         font.Hinting					// 微调
+    SpaceMin, SpaceMax  int							// 间距
 }
 
-//NewVerifyCode 验证码对象
 func NewVerifyCode() *VerifyCode {
-    return &VerifyCode{
-        DPI: 72,
-        Size: 12,
-           KerningMin: 0,
-           KerningMax: 12,
-    }
+	return &VerifyCode{
+		Width:800,
+		Height:400,
+		Size:200,
+	}
 }
 
-//hinting truetype 的微调字形
-func (VC *VerifyCode) hinting() truetype.Hinting {
-    if VC.Hinting {
-        return truetype.FullHinting
-    }else{
-        return truetype.NoHinting
-    }
-}
+func backgroundColorBlock(v int) int {
+	return int(RandRange(int(float32(v)*0.2), int(float32(v)*0.4)))+1
 
-//SetDPI 设置图片的DPI。默认为72DPI
-func (VC *VerifyCode) SetDPI(dpi float64) {
-    VC.DPI = dpi
-}
-
-//SetColor 设置图片中文字颜色，支持多种颜色，颜色随机颜色。默认为随机颜色，颜色RGBA值范围128-255
-func (VC *VerifyCode) SetColor(c *Color) {
-    VC.Colors = c
-}
-
-//SetBackground 设置图片背景颜色，支持多种颜色，颜色随机颜色。默认为透明色
-func (VC *VerifyCode) SetBackground(c *Color) {
-    VC.Backgrounds = c
-}
-
-//SetWidthWithHeight 设置图片的宽和高
-func (VC *VerifyCode) SetWidthWithHeight(width, height int) {
-    VC.Width, VC.Height = width, height
-}
-
-//SetFont 设置图片中验证码字体，支持多种字体，字体是随机选择生成水印
-func (VC *VerifyCode) SetFont(font *Font) {
-    VC.Fonts = font
-}
-//SetFontSize 设置字体大小，字体过大会超出。
-func (VC *VerifyCode) SetFontSize(size float64) {
-    VC.Size = size
-}
-//SetHinting 设置是否微调字形
-func (VC *VerifyCode) SetHinting(h bool) {
-    VC.Hinting = h
-}
-
-//SetKerning 设置验证码之前的间距
-func (VC *VerifyCode) SetKerning(min, max int) {
-    VC.KerningMin = min
-    VC.KerningMax = max
-}
-
-//Glyph 字形
-func (VC *VerifyCode) Glyph(s rune) (*Glyph, error) {
-    var(
-        err     error
-        index   truetype.Index
-    )
-    truetypeFont := VC.Fonts.Random()
-    truetypeGlyphBuf := truetype.NewGlyphBuf()
-    index = truetypeFont.Index(s)
-    err = truetypeGlyphBuf.Load(truetypeFont, truetypeFont.FUnitsPerEm(), index, VC.hinting())
-    if err != nil {
-        return nil, err
-    }
-    return &Glyph{
-        G: truetypeGlyphBuf,
-        F: truetypeFont,
-        I: index,
-        verifyCode: VC,
-        text: s,
-    }, nil
 }
 
 //Draw 水印
-func (VC *VerifyCode) Draw(text string) (draw.Image, error) {
-    var(
-        glyph   *Glyph
-        err     error
-        dImage  []draw.Image
-        sp      image.Point
-        x, y    int
-        sizeI   = int(VC.Size)
-        textL   = len([]rune(text))
-        i, rnd      int
-    )
-    imageRectangle := image.Rect(0, 0, VC.Width, VC.Height)
+func (T *VerifyCode) Draw(text string) (draw.Image, error) {
+    //绘制一个框大小，也可以说是一张背景
+    imageRectangle := image.Rect(0, 0, T.Width, T.Height)
     imageRGBA := image.NewRGBA(imageRectangle)
-    if len(VC.Backgrounds.color) > 0 {
-        for x := 0; x<VC.Width; x++ {
-            for y := 0; y<VC.Height; y++ {
-       imageRGBA.Set(x, y, VC.Backgrounds.Random())
-            }
+    
+    //绘制背景颜色
+    var(
+		bgRandH = backgroundColorBlock(T.Width)
+		bgRandV = backgroundColorBlock(T.Height)
+    	bgColor color.Color
+    	yColors = make(map[int]color.Color)
+   	)
+   	
+    yColors[0]=T.BackgroundColor.Random()
+    for x := 0; x<T.Width; x++ {
+    	if (x+1)%bgRandH == 0 {
+			bgRandH = backgroundColorBlock(T.Width)
+			yColors = make(map[int]color.Color)
+		    yColors[0]=T.BackgroundColor.Random()
+    	}
+        for y := 0; y<T.Height; y++ {
+        	if bgc, ok := yColors[y]; ok {
+        		bgColor = bgc
+        	}else if (y+1)%bgRandV == 0  {
+				bgRandV = backgroundColorBlock(T.Height)
+        		yColors[y]=T.BackgroundColor.Random()
+        		bgColor = yColors[y]
+        	}else{
+        		yColors[y] = bgColor
+        	}
+        	
+			imageRGBA.Set(x, y, bgColor)
         }
     }
-    for _, v := range text {
-        glyph, err = VC.Glyph(v)
+    
+     var(
+		sp      	image.Point
+        x, y    	int
+        sizeI		= int(T.Size)
+        textL		= len([]rune(text))	
+        rnd      	int
+        i			int
+    )
+	for _, v := range text {
+   	   f, err := T.Font.Random()
+   	   if err != nil {
+   	   	   //字体错误
+   	   	   return nil, err
+   	   }
+		glyph := Glyph{
+			Size:T.Size,
+			DPI:T.DPI,
+			Hinting:T.Hinting,
+		}
+        drawImage, err := glyph.FontGlyph(f, v, T.TextColor.Random())
         if err != nil {
             return nil, err
         }
-        drawImage, err := glyph.FontGlyph(VC.Size, VC.Colors.RandomImage())
-        if err != nil {
-            return nil, err
-        }
-        dImage = append(dImage, drawImage)
-        x   = (VC.Width/textL)*i
-        if x < (VC.Width/2) {
-            rnd = int(RandRange(0, VC.KerningMax))
+        
+        x   = (T.Width/textL)*i
+        if x < (T.Width/2) {
+            rnd = int(RandRange(0, T.SpaceMax))
         }else{
-            rnd = int(RandRange(VC.KerningMin, 0))
+            rnd = int(RandRange(T.SpaceMin, 0))
         }
         x   = ^(x+rnd)
-        y   = ^int(RandRange(sizeI, VC.Height)) + sizeI
+        y   = ^int(RandRange(sizeI, T.Height)) + sizeI
         sp = image.Pt(x, y)
-        draw.Draw(imageRGBA, imageRGBA.Bounds(), drawImage, sp, draw.Over)
+        
+		draw.Draw(imageRGBA, imageRectangle, drawImage, sp, draw.Over)
         i++
     }
-    return imageRGBA, nil
+	return imageRGBA, nil
 }
 
-// PNG
-func (VC *VerifyCode) PNG(text string, w io.Writer) error {
-    imageImage, err := VC.Draw(text)
+//PNG 生成PNG图片
+//	text string	文本
+//	w io.Writer	写入接口
+//	error		错误
+func (T *VerifyCode) PNG(text string, w io.Writer) error {
+    imageImage, err := T.Draw(text)
     if err != nil {
         return err
     }
     return png.Encode(w, imageImage)
 }
 
+
 //GIF 保存为GIF格式图片
-func (VC *VerifyCode) GIF(text string, w io.Writer) error {
-    imageImage, err := VC.Draw(text)
+//	text string	文本
+//	w io.Writer	写入接口
+//	error		错误
+func (T *VerifyCode) GIF(text string, w io.Writer) error {
+    imageImage, err := T.Draw(text)
     if err != nil {
         return err
     }
@@ -427,10 +350,23 @@ func (VC *VerifyCode) GIF(text string, w io.Writer) error {
 }
 
 //JPEG 保存为JPEG格式图片
-func (VC *VerifyCode) JPEG(text string, w io.Writer) error {
-    imageImage, err := VC.Draw(text)
+//	text string	文本
+//	w io.Writer	写入接口
+//	error		错误
+func (T *VerifyCode) JPEG(text string, w io.Writer) error {
+    imageImage, err := T.Draw(text)
     if err != nil {
         return err
     }
     return jpeg.Encode(w, imageImage, &jpeg.Options{Quality: 100})
 }
+
+
+
+
+
+
+
+
+
+

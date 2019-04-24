@@ -1,10 +1,10 @@
-package verifycode_test
+﻿package verifycode
 import (
     "fmt"
 )
 
-func ExampleRander(){
-    n := Rander(10)
+func ExampleRand(){
+    n := Rand(10)
     fmt.Println(n)
 }
 
@@ -19,16 +19,4 @@ func ExampleRandomText(){
     n := 4
     code := RandomText(text , n)
     fmt.Println(code)
-}
-
-func ExampleNewFont() {
-    s := []string{"0.ttf"}
-    f, err := NewFont(s)
-    fmt.Println(f, err)
-}
-
-func ExampleNewColor() {
-    s := []string{"#FFFFFFFF", "#E34D86FF"}
-    c, err := NewColor(s)
-    fmt.Println(c, err)
 }

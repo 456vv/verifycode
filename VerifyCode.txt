@@ -1,68 +1,30 @@
-func Rander(n int) int64                                                            // 随机数
-func RandRange(min, max int) int64                                                  // 随机数（范围）
-func RandomText(text string , n int) string                                         // 随机字符
-
-type Bounds struct {                                                        // 边界
-    XMin, YMin, XMax, YMax int32                                                    // X0, Y0, X1, Y1
+func Rand(n int) int64																						// 随机数，返回的随机数是 0-n 的其中一个值。
+func RandRange(min, max int) int64																			// 随机数（范围）
+func RandomText(text string, n int) string                                                                  // 随机字符
+type Color struct {}                                                                                   	// 颜色集
+    func (T *Color) AddHEX(text string) error                                                               增加十六进制颜色
+    func (T *Color) AddRGBA(r, g, b, a uint8) error                                                         增加RGBA颜色
+    func (T *Color) Random() color.Color                                                                    随机颜色
+type Font struct {}																						// 字体集
+    func (T *Font) AddFile(src string) error                                                                // 增加字体文件
+    func (T *Font) Random() (*truetype.Font, error)                                                         // 随机字体
+type Glyph struct {   																					// 字形
+    Hinting font.Hinting 																					// 微调字形
+    Size    float64      																					// 字形大小
+    DPI     float64      																					// PDI，默认72
 }
-type HMetric struct {                                                       // 垂直测量
-    AdvanceWidth, LeftSideBearing int32                                            // 全宽，左跨
+    func (T *Glyph) FontGlyph(Font *truetype.Font, text rune, c color.Color) (draw.Image, error)           	// 字体字形
+type VerifyCode struct {																				// 验证码
+    Width, Height              int          																// 宽，高
+    DPI                        float64      																// DPI
+    Font                       Font         																// 字体对象
+    Size                       float64      																// 字体大小
+    TextColor, BackgroundColor Color        																// 颜色，背景
+    Hinting                    font.Hinting 																// 微调
+    SpaceMin, SpaceMax         int          																// 间距
 }
-type VMetric struct {                                                               // 水平测量
-    AdvanceHeight, TopSideBearing int32                                             // 全高，上跨
-}
-type Glyph struct{                                                          // 字形
-    G           *truetype.GlyphBuf                                                  // 字形对象
-    F           *truetype.Font                                                      // 字体对象
-    I           truetype.Index                                                      // 字体索引
-    verifyCode  *VerifyCode                                                         // 验证码对象
-    text        rune                                                                // 字形rune
-}
-    func (g *Glyph) AdvanceWidth() int32                                            // 全宽
-    func (g *Glyph) Width() int32                                                   // 宽度
-    func (g *Glyph) Height() int32                                                  // 高度
-    func (g *Glyph) LeftMargin() int32                                              // 左跨
-    func (g *Glyph) TopMargin() int32                                               // 上跨（只有小部字体文件，才是正确的。）
-    func (g *Glyph) HMetric() HMetric                                               // 水平测量
-    func (g *Glyph) VMetric() VMetric                                               // 垂直测量
-    func (g *Glyph) Bounds() Bounds                                                 // 边形
-    func (g *Glyph) hinting() freetype.Hinting                                      // 微调
-    func (g *Glyph) FontGlyph(size float64, c image.Image) (draw.Image, error)      // 字体字形
-
-type Font struct {                                                          // 字体
-    font    []*truetype.Font                                                        // 字体集
-}
-    func NewFont(f []string) (*Font, error)                                         // 字体对象
-    func (f *Font) Random() *truetype.Font                                          // 随机字体
-
-type Color struct {                                                         // 颜色
-    color   []color.Color                                                           // 颜色集
-}
-    func NewColor(c []string) (*Color, error)                                       // 颜色对象
-    func (c *Color) Random() color.Color                                            // 随机颜色
-    func (c *Color) RandomImage() image.Image                                       // 随机图像
-
-type VerifyCode struct {                                                    // 验证码
-    Width, Height   int                                                             // 宽，高
-    DPI             float64                                                         // DPI
-    Fonts           *Font                                                           // 字体对象
-    Size            float64                                                         // 字体大小
-    Colors, Backgrounds        *Color                                               // 颜色，背景
-    Hinting         bool                                                            // 微调
-    KerningMin, KerningMax    int                                                   // 间距
-}
-    func NewVerifyCode() *VerifyCode                                                // 验证码对象
-    func (VC *VerifyCode) hinting() truetype.Hinting                                // 微调
-    func (VC *VerifyCode) SetDPI(dpi float64)                                       // 设置DPI
-    func (VC *VerifyCode) SetColor(c *Color)                                        // 设置颜色
-    func (VC *VerifyCode) SetBackground(c *Color)                                   // 设置背景
-    func (VC *VerifyCode) SetWidthWithHeight(width, height  int)                    // 设置宽，度
-    func (VC *VerifyCode) SetFont(font *Font)                                       // 设置字体
-    func (VC *VerifyCode) SetFontSize(size float64)                                 // 设置字体大小
-    func (VC *VerifyCode) SetHinting(h bool)                                        // 设置微调
-    func (VC *VerifyCode) SetKerning(min, max int)                                  // 设置间距
-    func (VC *VerifyCode) Glyph(s rune) (*Glyph, error)                             // 字形
-    func (VC *VerifyCode) Draw(text string) (draw.Image, error)                     // 水印
-    func (VC *VerifyCode) PNG(text string, w io.Writer) error                       // PNG
-    func (VC *VerifyCode) GIF(text string, w io.Writer) error                       // GIF
-    func (VC *VerifyCode) JPEG(text string, w io.Writer) error                      // JPEG
+    func NewVerifyCode() *VerifyCode        																// 默认验证码对象
+    func (T *VerifyCode) Draw(text string) (draw.Image, error)                                              // 水印
+    func (T *VerifyCode) GIF(text string, w io.Writer) error                                                // 保存为GIF格式图片
+    func (T *VerifyCode) JPEG(text string, w io.Writer) error                                               // 保存为JPEG格式图片
+    func (T *VerifyCode) PNG(text string, w io.Writer) error                                                // 保存为PNG格式图片

@@ -1,51 +1,37 @@
-例子：
+# vweb [![Build Status](https://travis-ci.org/456vv/verifycode.svg?branch=master)](https://travis-ci.org/456vv/verifycode)
+golang verifycode, 简单的图形验证码生成。
 
-    package main
-    import (
-      "fmt"
-      "os"
-      "image/png"
-      "github.com/456vv/verifycode"
-    )
-    func main(){
-        //验证码颜色
-        c := []string{"#ff8080FF", "#00ff0000", "#8080c0FD"}
-        colors, err := verifycode.NewColor(c)
-        if err != nil {
-            fmt.Println("NewColor: %v", err)
-            os.Exit(-1)
-        }
-        //验证码背景
-        b := []string{"#804040FF"}
-        backgrounds, err := verifycode.NewColor(b)
-        if err != nil {
-            fmt.Println("NewColor: %v", err)
-            os.Exit(-1)
-        }
-        //字体
-        f := []string{"0.ttf"}
-        fonts, err := verifycode.NewFont(f)
-        if err != nil {
-            fmt.Println("NewFont: %v", err)
-            os.Exit(-1)
-        }
-        verifyCode := verifycode.NewVerifyCode()
-        verifyCode.SetDPI(72)           //也可以不用设置这个
-        verifyCode.SetColor(colors)
-        verifyCode.SetBackground(backgrounds)
-        verifyCode.SetFont(fonts)
-        verifyCode.SetWidthWithHeight(500, 200) // 宽500px，高200px
-        verifyCode.SetFontSize(200)
-        verifyCode.SetHinting(false)    //也可以不用设置这个
-        verifyCode.SetKerning(-100, 100)    //随机字距，最小-100，最大100
-        file, err := os.Create("tmpTest.png")
-        if err != nil {
-            fmt.Println("创建文件出错 %v", err)
-            os.Exit(-1)
-        }
-        err = verifyCode.PNG("ABCD", file)
-        if err != nil {
-            fmt.Println("生成验证码出错 %v", err)
-            os.Exit(-1)
-        }
-    }
+
+# **列表：**
+```go
+func Rand(n int) int64																						// 随机数，返回的随机数是 0-n 的其中一个值。
+func RandRange(min, max int) int64																			// 随机数（范围）
+func RandomText(text string, n int) string                                                                  // 随机字符
+type Color struct {}                                                                                   	// 颜色集
+    func (T *Color) AddHEX(text string) error                                                               增加十六进制颜色
+    func (T *Color) AddRGBA(r, g, b, a uint8) error                                                         增加RGBA颜色
+    func (T *Color) Random() color.Color                                                                    随机颜色
+type Font struct {}																						// 字体集
+    func (T *Font) AddFile(src string) error                                                                // 增加字体文件
+    func (T *Font) Random() (*truetype.Font, error)                                                         // 随机字体
+type Glyph struct {   																					// 字形
+    Hinting font.Hinting 																					// 微调字形
+    Size    float64      																					// 字形大小
+    DPI     float64      																					// PDI，默认72
+}
+    func (T *Glyph) FontGlyph(Font *truetype.Font, text rune, c color.Color) (draw.Image, error)           	// 字体字形
+type VerifyCode struct {																				// 验证码
+    Width, Height              int          																// 宽，高
+    DPI                        float64      																// DPI
+    Font                       Font         																// 字体对象
+    Size                       float64      																// 字体大小
+    TextColor, BackgroundColor Color        																// 颜色，背景
+    Hinting                    font.Hinting 																// 微调
+    SpaceMin, SpaceMax         int          																// 间距
+}
+    func NewVerifyCode() *VerifyCode        																// 默认验证码对象
+    func (T *VerifyCode) Draw(text string) (draw.Image, error)                                              // 水印
+    func (T *VerifyCode) GIF(text string, w io.Writer) error                                                // 保存为GIF格式图片
+    func (T *VerifyCode) JPEG(text string, w io.Writer) error                                               // 保存为JPEG格式图片
+    func (T *VerifyCode) PNG(text string, w io.Writer) error                                                // 保存为PNG格式图片
+```
