@@ -188,15 +188,38 @@ type Glyph struct{
 //	draw.Image				字形
 //	error					错误
 func (T *Glyph) FontGlyph(Font *truetype.Font, text rune, c color.Color) (draw.Image, error) {
-	var dx, dy      = int(T.Size), int(T.Size)
+	
+	//字形大小是字体文件已经固定，各字体文件的字形大小不一。
+	perEm 	:= Font.FUnitsPerEm()
+	//生成的字体大小，必须按字形比例来计算缩放。是大还是小。
+	ratio 	:= T.Size/float64(perEm)
+	//生成的图片一样的宽和高
+	wh		:= int(float64(perEm)*ratio)
+	
+	//各字体中的字形的高度不一样，需要计算Y的位置
+    b := Font.Bounds(fixed.Int26_6(perEm))
+    //y轴是从字高开始
+	//vMetric := Font.VMetric(fixed.Int26_6(perEm), Font.Index(text))
+    fontHeight := int(b.Max.Y+b.Min.Y)
+    y := (int(perEm)-fontHeight)/2+fontHeight
+	//x轴是从0开始
+	hMetric := Font.HMetric(fixed.Int26_6(perEm), Font.Index(text))
+    x := (int(perEm)-int(hMetric.LeftSideBearing)-int(hMetric.AdvanceWidth))/2
+    
     // 新建一个 指定大小的 RGBA位图
+	var dx, dy = wh, wh
     drawImage := image.NewRGBA(image.Rect(0, 0, dx, dy))
+	//for i:=0;i<dx;i++ {
+	//	for j:=0;j<dy;j++{
+	//		drawImage.Set(i, j, color.RGBA{R: 0, G: 0, B: 0, A: 255, })
+	//	}
+	//}
 
 	//字体转图片
     freetypeContext := freetype.NewContext();
     freetypeContext.SetClip(drawImage.Bounds())
     if T.DPI > 0 && T.DPI < 72 {
-		freetypeContext.SetDPI(T.DPI)
+	//	freetypeContext.SetDPI(T.DPI)
     }
     freetypeContext.SetFont(Font)
 	freetypeContext.SetFontSize(T.Size)
@@ -204,23 +227,8 @@ func (T *Glyph) FontGlyph(Font *truetype.Font, text rune, c color.Color) (draw.I
     freetypeContext.SetSrc(image.NewUniform(c))
     freetypeContext.SetDst(drawImage)
 	
-	perEm := Font.FUnitsPerEm()
-	glyphBuf := truetype.GlyphBuf{}
-	err := glyphBuf.Load(Font, fixed.Int26_6(perEm), Font.Index(text), T.Hinting)
-	if err != nil {
-		return nil, err
-	}
-	
-	//x轴是从0开始
-	fontWidth := int(glyphBuf.AdvanceWidth)
-    x := (int(T.Size)-fontWidth)/2
-    
-    //y轴是从字高开始
-    fontHeight := int(glyphBuf.Bounds.Max.Y+glyphBuf.Bounds.Min.Y)
-    y := (int(T.Size)-fontHeight)/2+fontHeight
-    
-    pt := freetype.Pt(x, y)
-	pt, err = freetypeContext.DrawString(string(text), pt)
+    pt := freetype.Pt(int(float64(x)*ratio), int(float64(y)*ratio))
+	pt, err := freetypeContext.DrawString(string(text), pt)
     return drawImage, err
 }
 
@@ -232,7 +240,7 @@ type VerifyCode struct {
     Size            float64							// 字体大小
 	TextColor, BackgroundColor    Color				// 颜色，背景
     Hinting         font.Hinting					// 微调
-    SpaceMin, SpaceMax  int							// 间距
+    TextSpace  		int								// 间距
 }
 
 func NewVerifyCode() *VerifyCode {
@@ -288,9 +296,15 @@ func (T *VerifyCode) Draw(text string) (draw.Image, error) {
 		sp      	image.Point
         x, y    	int
         sizeI		= int(T.Size)
-        textL		= len([]rune(text))	
+        fontLength	= len([]rune(text))	
+     	fontWidth	= T.Width/fontLength
         rnd      	int
         i			int
+		glyph 		= Glyph{
+						Size:T.Size,
+						DPI:T.DPI,
+						Hinting:T.Hinting,
+					}
     )
 	for _, v := range text {
    	   f, err := T.Font.Random()
@@ -298,23 +312,16 @@ func (T *VerifyCode) Draw(text string) (draw.Image, error) {
    	   	   //字体错误
    	   	   return nil, err
    	   }
-		glyph := Glyph{
-			Size:T.Size,
-			DPI:T.DPI,
-			Hinting:T.Hinting,
-		}
         drawImage, err := glyph.FontGlyph(f, v, T.TextColor.Random())
         if err != nil {
             return nil, err
         }
         
-        x   = (T.Width/textL)*i
-        if x < (T.Width/2) {
-            rnd = int(RandRange(0, T.SpaceMax))
-        }else{
-            rnd = int(RandRange(T.SpaceMin, 0))
-        }
-        x   = ^(x+rnd)
+        //位置是负
+        rnd = int(RandRange(^T.TextSpace, T.TextSpace))
+        x   = ^int(fontWidth*i+int(T.Size*0.5)+rnd)
+		
+        //位置是负
         y   = ^int(RandRange(sizeI, T.Height)) + sizeI
         sp = image.Pt(x, y)
         

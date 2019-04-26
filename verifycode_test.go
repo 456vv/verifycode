@@ -83,10 +83,10 @@ func Test_Glyph_FontGlyph(t *testing.T){
 	
 	glyph := Glyph{
 		DPI:72,
-		Size:256,
+		Size:500,
 	}
 	
-	drawImage, err := glyph.FontGlyph(f.font[0], '颧', c.Random())
+	drawImage, err := glyph.FontGlyph(f.font[0], 'B', c.Random())
 	
 	if err != nil {
 		t.Fatalf("生成字形出错: %v", err)
@@ -120,9 +120,9 @@ func Test_NewVerifyCode_PNG(t *testing.T){
 	}
 	
 	verifycode := NewVerifyCode()
+	verifycode.Size=200
 	verifycode.Font = f
-	verifycode.SpaceMin=-100
-	verifycode.SpaceMax=0
+	verifycode.TextSpace=50
 	err = verifycode.PNG("验证汉字", filePNG)
 	if err != nil {
 		t.Fatalf("生成验证码失败: %v", err)
