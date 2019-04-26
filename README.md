@@ -20,16 +20,18 @@ type Glyph struct {   																					// 字形
     DPI     float64      																					// PDI，默认72
 }
     func (T *Glyph) FontGlyph(Font *truetype.Font, text rune, c color.Color) (draw.Image, error)           	// 字体字形
-type VerifyCode struct {																				// 验证码
-    Width, Height              int          																// 宽，高
-    DPI                        float64      																// DPI
-    Font                       Font         																// 字体对象
-    Size                       float64      																// 字体大小
-    TextColor, BackgroundColor Color        																// 颜色，背景
-    Hinting                    font.Hinting 																// 微调
-    SpaceMin, SpaceMax         int          																// 间距
+type Style struct{																						// 配色
+	Font           	*Font																					// 字体对象
+    Size            float64																					// 字体大小
+	TextColor, BackgroundColor    *Color																	// 颜色，背景
+    Hinting         font.Hinting																			// 微调
+    TextSpace  		int																						// 间距
 }
-    func NewVerifyCode() *VerifyCode        																// 默认验证码对象
+type VerifyCode struct {																				// 验证码
+    Width, Height              	int          																// 宽，高
+    DPI                        	float64      																// DPI
+}
+	func (T *VerifyCode) Style(s *Style) error																// 配色
     func (T *VerifyCode) Draw(text string) (draw.Image, error)                                              // 水印
     func (T *VerifyCode) GIF(text string, w io.Writer) error                                                // 保存为GIF格式图片
     func (T *VerifyCode) JPEG(text string, w io.Writer) error                                               // 保存为JPEG格式图片

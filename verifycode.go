@@ -248,8 +248,8 @@ type Style struct{
     TextSpace  		int								// 间距
 }
 
-//Style 多种配色方案
-//	s []*Style	配色方案
+//Style 多种配色方案，可以多次调用来增加多个配色方案。
+//	error	错误
 func (T *VerifyCode) Style(s *Style) error {
 	if s == nil {
 		return  fmt.Errorf("verifycode：配色不可以是nil")
