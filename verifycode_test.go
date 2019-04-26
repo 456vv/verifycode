@@ -113,16 +113,22 @@ func Test_NewVerifyCode_PNG(t *testing.T){
 	}
 	defer filePNG.Close()
 	
-	f := Font{}
+	f := &Font{}
 	err = f.AddFile("testdata/0.ttf")
 	if err != nil {
 		t.Fatalf("字体错误：%v",err)
 	}
+	s := &Style{
+		Font:f,
+		Size:200,
+		TextSpace:50,
+	}
 	
-	verifycode := NewVerifyCode()
-	verifycode.Size=200
-	verifycode.Font = f
-	verifycode.TextSpace=50
+	verifycode := VerifyCode{
+		Width:800,
+		Height:300,
+	}
+	verifycode.Style(s)
 	err = verifycode.PNG("验证汉字", filePNG)
 	if err != nil {
 		t.Fatalf("生成验证码失败: %v", err)

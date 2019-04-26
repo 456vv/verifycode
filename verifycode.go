@@ -236,19 +236,26 @@ func (T *Glyph) FontGlyph(Font *truetype.Font, text rune, c color.Color) (draw.I
 type VerifyCode struct {
     Width, Height   int								// 宽，高
     DPI             float64							// DPI
-	Font           	Font							// 字体对象
+    style			[]*Style						// 多种配色方案
+}
+
+//Style 本色
+type Style struct{
+	Font           	*Font							// 字体对象
     Size            float64							// 字体大小
-	TextColor, BackgroundColor    Color				// 颜色，背景
+	TextColor, BackgroundColor    *Color			// 颜色，背景
     Hinting         font.Hinting					// 微调
     TextSpace  		int								// 间距
 }
 
-func NewVerifyCode() *VerifyCode {
-	return &VerifyCode{
-		Width:800,
-		Height:400,
-		Size:200,
+//Style 多种配色方案
+//	s []*Style	配色方案
+func (T *VerifyCode) Style(s *Style) error {
+	if s == nil {
+		return  fmt.Errorf("verifycode：配色不可以是nil")
 	}
+	T.style = append(T.style, s)
+	return nil
 }
 
 func backgroundColorBlock(v int) int {
@@ -258,6 +265,26 @@ func backgroundColorBlock(v int) int {
 
 //Draw 水印
 func (T *VerifyCode) Draw(text string) (draw.Image, error) {
+	//读取配色
+	if T.style == nil {
+		return nil, fmt.Errorf("verifycode：没有配色可以使用")
+	}
+	sn := Rand(len(T.style))
+	if T.style[sn] == nil {
+		return nil, fmt.Errorf("verifycode：配色是空接口")
+	}
+	style := T.style[sn]
+	if style.Font == nil {
+		return nil, fmt.Errorf("verifycode：配色中没有携带字体")
+	}
+	if style.TextColor == nil {
+		style.TextColor=&Color{}
+	}
+	if style.BackgroundColor == nil {
+		style.BackgroundColor = &Color{}
+	}
+
+	
     //绘制一个框大小，也可以说是一张背景
     imageRectangle := image.Rect(0, 0, T.Width, T.Height)
     imageRGBA := image.NewRGBA(imageRectangle)
@@ -270,19 +297,19 @@ func (T *VerifyCode) Draw(text string) (draw.Image, error) {
     	yColors = make(map[int]color.Color)
    	)
    	
-    yColors[0]=T.BackgroundColor.Random()
+    yColors[0]=style.BackgroundColor.Random()
     for x := 0; x<T.Width; x++ {
     	if (x+1)%bgRandH == 0 {
 			bgRandH = backgroundColorBlock(T.Width)
 			yColors = make(map[int]color.Color)
-		    yColors[0]=T.BackgroundColor.Random()
+		    yColors[0]=style.BackgroundColor.Random()
     	}
         for y := 0; y<T.Height; y++ {
         	if bgc, ok := yColors[y]; ok {
         		bgColor = bgc
         	}else if (y+1)%bgRandV == 0  {
 				bgRandV = backgroundColorBlock(T.Height)
-        		yColors[y]=T.BackgroundColor.Random()
+        		yColors[y]=style.BackgroundColor.Random()
         		bgColor = yColors[y]
         	}else{
         		yColors[y] = bgColor
@@ -295,31 +322,31 @@ func (T *VerifyCode) Draw(text string) (draw.Image, error) {
      var(
 		sp      	image.Point
         x, y    	int
-        sizeI		= int(T.Size)
+        sizeI		= int(style.Size)
         fontLength	= len([]rune(text))	
      	fontWidth	= T.Width/fontLength
         rnd      	int
         i			int
 		glyph 		= Glyph{
-						Size:T.Size,
+						Size:style.Size,
 						DPI:T.DPI,
-						Hinting:T.Hinting,
+						Hinting:style.Hinting,
 					}
     )
 	for _, v := range text {
-   	   f, err := T.Font.Random()
+   	   f, err := style.Font.Random()
    	   if err != nil {
    	   	   //字体错误
    	   	   return nil, err
    	   }
-        drawImage, err := glyph.FontGlyph(f, v, T.TextColor.Random())
+        drawImage, err := glyph.FontGlyph(f, v, style.TextColor.Random())
         if err != nil {
             return nil, err
         }
         
         //位置是负
-        rnd = int(RandRange(^T.TextSpace, T.TextSpace))
-        x   = ^int(fontWidth*i+int(T.Size*0.5)+rnd)
+        rnd = int(RandRange(^style.TextSpace, style.TextSpace))
+        x	= ^(int(fontWidth*i)+int((float64(fontWidth)-style.Size)*0.5)+rnd)
 		
         //位置是负
         y   = ^int(RandRange(sizeI, T.Height)) + sizeI
