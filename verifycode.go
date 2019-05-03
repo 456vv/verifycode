@@ -381,9 +381,6 @@ func (T *VerifyCode) GIF(text string, w io.Writer, opt *gif.Options) error {
     if err != nil {
         return err
     }
-    if opt == nil {
-    	opt = &gif.Options{NumColors: 256}
-    }
     return gif.Encode(w, imageImage, opt)
 }
 
@@ -396,9 +393,6 @@ func (T *VerifyCode) JPEG(text string, w io.Writer, opt *jpeg.Options) error {
     imageImage, err := T.Draw(text)
     if err != nil {
         return err
-    }
-    if opt == nil {
-    	opt = &jpeg.Options{Quality: 100}
     }
     return jpeg.Encode(w, imageImage, opt)
 }
