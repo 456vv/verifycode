@@ -27,6 +27,6 @@ type VerifyCode struct {																				// 验证码
 }
 	func (T *VerifyCode) Style(s *Style) error																// 配色
     func (T *VerifyCode) Draw(text string) (draw.Image, error)                                              // 水印
-    func (T *VerifyCode) GIF(text string, w io.Writer) error                                                // 保存为GIF格式图片
-    func (T *VerifyCode) JPEG(text string, w io.Writer) error                                               // 保存为JPEG格式图片
+    func (T *VerifyCode) GIF(text string, w io.Writer, opt *gif.Options) error								// 保存为GIF格式图片
+    func (T *VerifyCode) JPEG(text string, w io.Writer, opt *jpeg.Options) error							// 保存为JPEG格式图片
     func (T *VerifyCode) PNG(text string, w io.Writer) error                                                // 保存为PNG格式图片

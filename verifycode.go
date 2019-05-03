@@ -374,25 +374,33 @@ func (T *VerifyCode) PNG(text string, w io.Writer) error {
 //GIF 保存为GIF格式图片
 //	text string	文本
 //	w io.Writer	写入接口
+//	opt *gif.Options 控制图片质量
 //	error		错误
-func (T *VerifyCode) GIF(text string, w io.Writer) error {
+func (T *VerifyCode) GIF(text string, w io.Writer, opt *gif.Options) error {
     imageImage, err := T.Draw(text)
     if err != nil {
         return err
     }
-    return gif.Encode(w, imageImage, &gif.Options{NumColors: 256})
+    if opt == nil {
+    	opt = &gif.Options{NumColors: 256}
+    }
+    return gif.Encode(w, imageImage, opt)
 }
 
 //JPEG 保存为JPEG格式图片
 //	text string	文本
 //	w io.Writer	写入接口
+//	opt *jpeg.Options 控制图片质量
 //	error		错误
-func (T *VerifyCode) JPEG(text string, w io.Writer) error {
+func (T *VerifyCode) JPEG(text string, w io.Writer, opt *jpeg.Options) error {
     imageImage, err := T.Draw(text)
     if err != nil {
         return err
     }
-    return jpeg.Encode(w, imageImage, &jpeg.Options{Quality: 100})
+    if opt == nil {
+    	opt = &jpeg.Options{Quality: 100}
+    }
+    return jpeg.Encode(w, imageImage, opt)
 }
 
 
