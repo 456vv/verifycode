@@ -1,4 +1,4 @@
-# vweb [![Build Status](https://travis-ci.org/456vv/verifycode.svg?branch=master)](https://travis-ci.org/456vv/verifycode)
+# verifycode [![Build Status](https://travis-ci.org/456vv/verifycode.svg?branch=master)](https://travis-ci.org/456vv/verifycode)
 golang verifycode, 简单的图形验证码生成。
 
 
